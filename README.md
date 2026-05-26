@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DevVoice
+
+English Output Trainer for Software Engineers - Convert Chinese technical work descriptions into multiple English expression styles.
+
+## Features
+
+Convert Chinese technical work descriptions into 4 English expression styles:
+
+1. **Daily Standup** - Brief standup style, covering yesterday's accomplishments, today's plans, and any blockers
+2. **Interview STAR** - STAR format (Situation, Task, Action, Result) for professional storytelling
+3. **Email/Slack** - Professional workplace communication style
+4. **Jira Comment** - Technical documentation style with ID references
+
+Supports custom prompts for each style, enabling flexible adaptation to different scenarios.
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure Environment Variables
+
+Copy `.env.example` to `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` and add your API credentials:
+
+```env
+ANTHROPIC_API_KEY=your_api_key_here
+ANTHROPIC_BASE_URL=https://api.anthropic.com
+ANTHROPIC_MODEL=claude-sonnet-4-20250514
+```
+
+### 3. Start Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ANTHROPIC_API_KEY` | Anthropic API key | - |
+| `ANTHROPIC_BASE_URL` | API endpoint | `https://api.anthropic.com` |
+| `ANTHROPIC_MODEL` | Model name | `claude-sonnet-4-20250514` |
 
-## Learn More
+Compatible with any service that supports the Anthropic protocol (e.g., DeepSeek, proxy services). Simply update `ANTHROPIC_BASE_URL` to use an alternative provider.
 
-To learn more about Next.js, take a look at the following resources:
+## Custom Prompts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Click "Custom Prompts" on the page to configure prompts for each style individually. Leave empty to use default prompts.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tech Stack
 
-## Deploy on Vercel
+- Next.js 14 App Router
+- Tailwind CSS
+- Anthropic SDK (direct invocation, no Vercel AI SDK required)
+- TypeScript
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+devvoice/
+├── src/
+│   └── app/
+│       ├── api/convert/route.ts  # API route
+│       ├── page.tsx              # Main page
+│       └── layout.tsx            # Layout
+├── .env.example                  # Environment template (committed to Git)
+├── .env.local                    # Local environment (not committed)
+└── .gitignore                    # Ignores .env.local
+```
+
+## License
+
+MIT

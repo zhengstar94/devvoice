@@ -1,65 +1,208 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+
+type StyleKey = 'daily' | 'star' | 'email' | 'jira';
+
+const STYLE_LABELS: Record<StyleKey, string> = {
+  daily: 'Daily Standup',
+  star: '面试 STAR',
+  email: '邮件/Slack',
+  jira: 'Jira Comment',
+};
+
+const STYLE_COLORS: Record<StyleKey, string> = {
+  daily: 'bg-blue-50 border-blue-200',
+  star: 'bg-green-50 border-green-200',
+  email: 'bg-purple-50 border-purple-200',
+  jira: 'bg-orange-50 border-orange-200',
+};
+
+const DEFAULT_PROMPTS: Record<StyleKey, string> = {
+  daily: 'brief, 2-3 sentences, what I did yesterday, what I\'m doing today, any blockers',
+  star: 'Situation, Task, Action, Result format, show your impact and skills',
+  email: 'professional, appropriate for workplace communication',
+  jira: 'technical, reference IDs, action-oriented, typically 1-2 sentences',
+};
 
 export default function Home() {
+  const [input, setInput] = useState('');
+  const [result, setResult] = useState<Record<StyleKey, string>>({
+    daily: '',
+    star: '',
+    email: '',
+    jira: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [prompts, setPrompts] = useState<Record<StyleKey, string>>({
+    daily: '',
+    star: '',
+    email: '',
+    jira: '',
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    setLoading(true);
+    setError('');
+    setResult({ daily: '', star: '', email: '', jira: '' });
+
+    try {
+      const mergedPrompts: Record<StyleKey, string> = {
+        daily: prompts.daily || DEFAULT_PROMPTS.daily,
+        star: prompts.star || DEFAULT_PROMPTS.star,
+        email: prompts.email || DEFAULT_PROMPTS.email,
+        jira: prompts.jira || DEFAULT_PROMPTS.jira,
+      };
+
+      const response = await fetch('/api/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chineseText: input, prompts: mergedPrompts }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '处理失败');
+      }
+
+      const text = data.result;
+
+      const headerMap: Record<string, StyleKey> = {
+        'Daily Standup': 'daily',
+        'Interview STAR': 'star',
+        'Email/Slack': 'email',
+        'Jira Comment': 'jira',
+      };
+
+      const parsed: Record<StyleKey, string> = {
+        daily: '',
+        star: '',
+        email: '',
+        jira: '',
+      };
+
+      const headers = ['Daily Standup', 'Interview STAR', 'Email/Slack', 'Jira Comment'];
+
+      for (let i = 0; i < headers.length; i++) {
+        const header = headers[i];
+        const nextHeader = headers[i + 1];
+        const startMarker = `**${header}:**`;
+        const startIdx = text.indexOf(startMarker);
+        if (startIdx === -1) continue;
+        const contentStart = startIdx + startMarker.length;
+        const nextMarker = nextHeader ? `**${nextHeader}:**` : null;
+        const endIdx = nextMarker ? text.indexOf(nextMarker) : text.length;
+        const content = text.substring(contentStart, endIdx).trim();
+        const key = headerMap[header];
+        if (key && content) {
+          parsed[key] = content;
+        }
+      }
+
+      if (!parsed.daily && !parsed.star && !parsed.email && !parsed.jira) {
+        throw new Error('解析结果失败');
+      }
+
+      setResult(parsed);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '未知错误');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-zinc-50 py-12 px-4">
+      <div className="mx-auto max-w-3xl">
+        <header className="mb-10 text-center">
+          <h1 className="text-3xl font-bold text-zinc-900">DevVoice</h1>
+          <p className="mt-2 text-zinc-600">工程师英语输出训练器</p>
+          <button
+            type="button"
+            onClick={() => setShowSettings(!showSettings)}
+            className="mt-3 text-sm text-zinc-500 underline hover:text-zinc-700"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            {showSettings ? '隐藏自定义提示词' : '自定义提示词'}
+          </button>
+        </header>
+
+        {showSettings && (
+          <div className="mb-8 rounded-lg border border-zinc-200 bg-zinc-100 p-4">
+            <p className="mb-3 text-sm text-zinc-600">自定义每种风格的提示词（留空使用默认）</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(Object.keys(STYLE_LABELS) as StyleKey[]).map((key) => (
+                <div key={key}>
+                  <label className="mb-1 block text-xs font-medium text-zinc-600">
+                    {STYLE_LABELS[key]}
+                  </label>
+                  <input
+                    type="text"
+                    value={prompts[key]}
+                    onChange={(e) => setPrompts({ ...prompts, [key]: e.target.value })}
+                    placeholder={DEFAULT_PROMPTS[key]}
+                    className="w-full rounded border border-zinc-300 px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-300"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mb-8">
+          <div className="mb-4">
+            <label
+              htmlFor="chinese-input"
+              className="mb-2 block text-sm font-medium text-zinc-700"
+            >
+              输入中文技术工作描述
+            </label>
+            <textarea
+              id="chinese-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="例如：修复了用户登录超时的 bug，优化了数据库查询性能"
+              className="w-full rounded-lg border border-zinc-300 p-4 text-base leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-200"
+              rows={4}
+              disabled={loading}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
           >
-            Documentation
-          </a>
-        </div>
-      </main>
+            {loading ? '转换中...' : '转换为 4 种英语风格'}
+          </button>
+        </form>
+
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {Object.entries(result).map(([key, text]) => {
+          if (!text) return null;
+          const k = key as StyleKey;
+          return (
+            <div key={k} className={`mb-4 rounded-lg border p-4 ${STYLE_COLORS[k]}`}>
+              <h3 className="mb-2 text-sm font-semibold text-zinc-700">
+                {STYLE_LABELS[k]}
+              </h3>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
+                {text}
+              </p>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
