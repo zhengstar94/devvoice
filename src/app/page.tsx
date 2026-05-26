@@ -36,6 +36,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [copied, setCopied] = useState<StyleKey | null>(null);
   const [prompts, setPrompts] = useState<Record<StyleKey, string>>({
     daily: '',
     star: '',
@@ -117,6 +118,16 @@ export default function Home() {
     }
   };
 
+  const handleCopy = async (key: StyleKey, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50 py-12 px-4">
       <div className="mx-auto max-w-3xl">
@@ -193,9 +204,18 @@ export default function Home() {
           const k = key as StyleKey;
           return (
             <div key={k} className={`mb-4 rounded-lg border p-4 ${STYLE_COLORS[k]}`}>
-              <h3 className="mb-2 text-sm font-semibold text-zinc-700">
-                {STYLE_LABELS[k]}
-              </h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-zinc-700">
+                  {STYLE_LABELS[k]}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(k, text)}
+                  className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-600 transition-colors hover:bg-zinc-100"
+                >
+                  {copied === k ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
                 {text}
               </p>
