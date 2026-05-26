@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import HistorySidebar, { type HistoryItem } from './components/HistorySidebar';
 
 type StyleKey = 'daily' | 'star' | 'email' | 'jira';
 
@@ -25,6 +26,9 @@ const DEFAULT_PROMPTS: Record<StyleKey, string> = {
   jira: 'technical, reference IDs, action-oriented, typically 1-2 sentences',
 };
 
+const STORAGE_KEY = 'devvoice_history';
+const MAX_ITEMS = 20;
+
 export default function Home() {
   const [input, setInput] = useState('');
   const [result, setResult] = useState<Record<StyleKey, string>>({
@@ -43,6 +47,7 @@ export default function Home() {
     email: '',
     jira: '',
   });
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | undefined>();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +56,7 @@ export default function Home() {
     setLoading(true);
     setError('');
     setResult({ daily: '', star: '', email: '', jira: '' });
+    setSelectedHistoryId(undefined);
 
     try {
       const mergedPrompts: Record<StyleKey, string> = {
@@ -111,11 +117,32 @@ export default function Home() {
       }
 
       setResult(parsed);
+      saveHistory(parsed);
     } catch (err) {
       setError(err instanceof Error ? err.message : '未知错误');
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveHistory = (parsed: Record<StyleKey, string>) => {
+    const history = getHistory();
+    const newItem: HistoryItem = {
+      id: Date.now().toString(),
+      input,
+      results: parsed,
+      timestamp: Date.now(),
+    };
+    const updated = [newItem, ...history].slice(0, MAX_ITEMS);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setSelectedHistoryId(newItem.id);
+    window.dispatchEvent(new Event('historyUpdated'));
+  };
+
+  const handleSelectHistory = (item: HistoryItem) => {
+    setInput(item.input);
+    setResult(item.results);
+    setSelectedHistoryId(item.id);
   };
 
   const handleCopy = async (key: StyleKey, text: string) => {
@@ -129,100 +156,109 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 py-12 px-4">
-      <div className="mx-auto max-w-3xl">
-        <header className="mb-10 text-center">
-          <h1 className="text-3xl font-bold text-zinc-900">DevVoice</h1>
-          <p className="mt-2 text-zinc-600">工程师英语输出训练器</p>
-          <button
-            type="button"
-            onClick={() => setShowSettings(!showSettings)}
-            className="mt-3 text-sm text-zinc-500 underline hover:text-zinc-700"
-          >
-            {showSettings ? '隐藏自定义提示词' : '自定义提示词'}
-          </button>
-        </header>
+    <div className="flex min-h-screen bg-zinc-50">
+      <HistorySidebar onSelect={handleSelectHistory} selectedId={selectedHistoryId} />
 
-        {showSettings && (
-          <div className="mb-8 rounded-lg border border-zinc-200 bg-zinc-100 p-4">
-            <p className="mb-3 text-sm text-zinc-600">自定义每种风格的提示词（留空使用默认）</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {(Object.keys(STYLE_LABELS) as StyleKey[]).map((key) => (
-                <div key={key}>
-                  <label className="mb-1 block text-xs font-medium text-zinc-600">
-                    {STYLE_LABELS[key]}
-                  </label>
-                  <input
-                    type="text"
-                    value={prompts[key]}
-                    onChange={(e) => setPrompts({ ...prompts, [key]: e.target.value })}
-                    placeholder={DEFAULT_PROMPTS[key]}
-                    className="w-full rounded border border-zinc-300 px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-300"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="mb-8">
-          <div className="mb-4">
-            <label
-              htmlFor="chinese-input"
-              className="mb-2 block text-sm font-medium text-zinc-700"
+      <main className="flex-1 overflow-y-auto py-12 px-4">
+        <div className="mx-auto max-w-3xl">
+          <header className="mb-10 text-center">
+            <h1 className="text-3xl font-bold text-zinc-900">DevVoice</h1>
+            <p className="mt-2 text-zinc-600">工程师英语输出训练器</p>
+            <button
+              type="button"
+              onClick={() => setShowSettings(!showSettings)}
+              className="mt-3 text-sm text-zinc-500 underline hover:text-zinc-700"
             >
-              输入中文技术工作描述
-            </label>
-            <textarea
-              id="chinese-input"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="例如：修复了用户登录超时的 bug，优化了数据库查询性能"
-              className="w-full rounded-lg border border-zinc-300 p-4 text-base leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-200"
-              rows={4}
-              disabled={loading}
-            />
-          </div>
+              {showSettings ? '隐藏自定义提示词' : '自定义提示词'}
+            </button>
+          </header>
 
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            className="w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
-          >
-            {loading ? '转换中...' : '转换为 4 种英语风格'}
-          </button>
-        </form>
-
-        {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        {Object.entries(result).map(([key, text]) => {
-          if (!text) return null;
-          const k = key as StyleKey;
-          return (
-            <div key={k} className={`mb-4 rounded-lg border p-4 ${STYLE_COLORS[k]}`}>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-zinc-700">
-                  {STYLE_LABELS[k]}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(k, text)}
-                  className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-600 transition-colors hover:bg-zinc-100"
-                >
-                  {copied === k ? 'Copied!' : 'Copy'}
-                </button>
+          {showSettings && (
+            <div className="mb-8 rounded-lg border border-zinc-200 bg-zinc-100 p-4">
+              <p className="mb-3 text-sm text-zinc-600">自定义每种风格的提示词（留空使用默认）</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(Object.keys(STYLE_LABELS) as StyleKey[]).map((key) => (
+                  <div key={key}>
+                    <label className="mb-1 block text-xs font-medium text-zinc-600">
+                      {STYLE_LABELS[key]}
+                    </label>
+                    <input
+                      type="text"
+                      value={prompts[key]}
+                      onChange={(e) => setPrompts({ ...prompts, [key]: e.target.value })}
+                      placeholder={DEFAULT_PROMPTS[key]}
+                      className="w-full rounded border border-zinc-300 px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-300"
+                    />
+                  </div>
+                ))}
               </div>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
-                {text}
-              </p>
             </div>
-          );
-        })}
-      </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="mb-8">
+            <div className="mb-4">
+              <label
+                htmlFor="chinese-input"
+                className="mb-2 block text-sm font-medium text-zinc-700"
+              >
+                输入中文技术工作描述
+              </label>
+              <textarea
+                id="chinese-input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="例如：修复了用户登录超时的 bug，优化了数据库查询性能"
+                className="w-full rounded-lg border border-zinc-300 p-4 text-base leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-200"
+                rows={4}
+                disabled={loading}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+            >
+              {loading ? '转换中...' : '转换为 4 种英语风格'}
+            </button>
+          </form>
+
+          {error && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          {Object.entries(result).map(([key, text]) => {
+            if (!text) return null;
+            const k = key as StyleKey;
+            return (
+              <div key={k} className={`mb-4 rounded-lg border p-4 ${STYLE_COLORS[k]}`}>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-zinc-700">
+                    {STYLE_LABELS[k]}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(k, text)}
+                    className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-600 transition-colors hover:bg-zinc-100"
+                  >
+                    {copied === k ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
+                  {text}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </main>
     </div>
   );
+}
+
+function getHistory(): HistoryItem[] {
+  const data = localStorage.getItem(STORAGE_KEY);
+  return data ? JSON.parse(data) : [];
 }
