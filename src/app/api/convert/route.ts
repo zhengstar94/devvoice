@@ -5,10 +5,10 @@ const anthropic = new Anthropic({
 });
 
 const DEFAULT_PROMPTS = {
-  daily: '**Daily Standup:** (brief, 2-3 sentences, what I did yesterday, what I\'m doing today, any blockers)',
-  star: '**Interview STAR:** (Situation, Task, Action, Result format, show your impact and skills)',
-  email: '**Email/Slack:** (professional, appropriate for workplace communication)',
-  jira: '**Jira Comment:** (technical, reference IDs, action-oriented, typically 1-2 sentences)',
+  daily: 'brief, 2-3 sentences, what I did yesterday, what I\'m doing today, any blockers',
+  star: 'Situation, Task, Action, Result format, show your impact and skills',
+  email: 'professional, appropriate for workplace communication',
+  jira: 'technical, reference IDs, action-oriented, typically 1-2 sentences',
 };
 
 export async function POST(request: Request) {
@@ -28,14 +28,28 @@ export async function POST(request: Request) {
 
     const prompt = `You are a professional English writing assistant for software engineers. Convert the following Chinese technical work description into 4 different English versions tailored to these specific styles:
 
-1. **Daily Standup:** ${mergedPrompts.daily}
-2. **Interview STAR:** ${mergedPrompts.star}
-3. **Email/Slack:** ${mergedPrompts.email}
-4. **Jira Comment:** ${mergedPrompts.jira}
+1. Daily Standup: ${mergedPrompts.daily}
+2. Interview STAR: ${mergedPrompts.star}
+3. Email/Slack: ${mergedPrompts.email}
+4. Jira Comment: ${mergedPrompts.jira}
 
 Chinese input: ${chineseText}
 
-Please provide all 4 versions using EXACTLY these headers: **Daily Standup:** **Interview STAR:** **Email/Slack:** **Jira Comment:** Each version should be clearly separated.`;
+Format your response EXACTLY like this (each section on its own lines):
+
+**Daily Standup:**
+[content here]
+
+**Interview STAR:**
+[content here]
+
+**Email/Slack:**
+[content here]
+
+**Jira Comment:**
+[content here]
+
+Do NOT include any --- separators or extra formatting. Just the headers and content.`;
 
     const message = await anthropic.messages.create({
       model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',

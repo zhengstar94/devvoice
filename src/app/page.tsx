@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import HistorySidebar, { type HistoryItem } from './components/HistorySidebar';
 
 type StyleKey = 'daily' | 'star' | 'email' | 'jira';
@@ -98,14 +99,16 @@ export default function Home() {
 
       for (let i = 0; i < headers.length; i++) {
         const header = headers[i];
-        const nextHeader = headers[i + 1];
-        const startMarker = `**${header}:**`;
-        const startIdx = text.indexOf(startMarker);
-        if (startIdx === -1) continue;
-        const contentStart = startIdx + startMarker.length;
-        const nextMarker = nextHeader ? `**${nextHeader}:**` : null;
-        const endIdx = nextMarker ? text.indexOf(nextMarker) : text.length;
-        const content = text.substring(contentStart, endIdx).trim();
+        const marker = `**${header}:**`;
+        const idx = text.indexOf(marker);
+        if (idx === -1) continue;
+
+        const contentStart = idx + marker.length;
+        const nextMarker = headers[i + 1] ? `**${headers[i + 1]}:**` : null;
+        const nextIdx = nextMarker ? text.indexOf(nextMarker) : -1;
+        const endIdx = nextIdx === -1 ? text.length : nextIdx;
+
+        const content = text.substring(contentStart, endIdx).trim().replace(/\n---\n[\s\S]*$/g, '');
         const key = headerMap[header];
         if (key && content) {
           parsed[key] = content;
@@ -246,9 +249,9 @@ export default function Home() {
                     {copied === k ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
+                <div className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
                   {text}
-                </p>
+                </div>
               </div>
             );
           })}
