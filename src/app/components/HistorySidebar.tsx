@@ -112,10 +112,10 @@ export default function HistorySidebar({ onSelect, selectedId }: HistorySidebarP
                     e.stopPropagation();
                     setHistory(deleteHistoryItem(item.id));
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-400 opacity-0 transition-opacity hover:bg-zinc-200 hover:text-red-500 group-hover:opacity-100"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-zinc-400 hover:bg-red-100 hover:text-red-600"
                   aria-label="Delete"
                 >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>

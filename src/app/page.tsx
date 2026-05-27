@@ -163,7 +163,7 @@ export default function Home() {
       <HistorySidebar onSelect={handleSelectHistory} selectedId={selectedHistoryId} />
 
       <main className="flex-1 overflow-y-auto py-12 px-4">
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-3xl px-4">
           <header className="mb-10 text-center">
             <h1 className="text-3xl font-bold text-zinc-900">DevVoice</h1>
             <p className="mt-2 text-zinc-600">工程师英语输出训练器</p>
@@ -232,29 +232,31 @@ export default function Home() {
             </div>
           )}
 
-          {Object.entries(result).map(([key, text]) => {
-            if (!text) return null;
-            const k = key as StyleKey;
-            return (
-              <div key={k} className={`mb-4 rounded-lg border p-4 ${STYLE_COLORS[k]}`}>
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-zinc-700">
-                    {STYLE_LABELS[k]}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(k, text)}
-                    className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-600 transition-colors hover:bg-zinc-100"
-                  >
-                    {copied === k ? 'Copied!' : 'Copy'}
-                  </button>
+          <div className="grid gap-4 sm:grid-cols-2 items-stretch">
+            {Object.entries(result).map(([key, text]) => {
+              if (!text) return null;
+              const k = key as StyleKey;
+              return (
+                <div key={k} className={`flex flex-col rounded-lg border p-4 max-h-[300px] ${STYLE_COLORS[k]}`}>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-zinc-700">
+                      {STYLE_LABELS[k]}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(k, text)}
+                      className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-600 transition-colors hover:bg-zinc-100"
+                    >
+                      {copied === k ? 'Copied!' : 'Copy'}
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
+                    {text}
+                  </div>
                 </div>
-                <div className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
-                  {text}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </main>
     </div>
